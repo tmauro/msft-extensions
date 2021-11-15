@@ -80,9 +80,10 @@ PROCESS {
 		$RefreshScheduleInput = Get-VstsInput -Name RefreshScheduleInput
 		$CrossWorkspaceRebinding = Get-VstsInput -Name CrossWorkspaceRebinding
 		$ReportWorkspaceName = Get-VstsInput -Name ReportWorkspaceName
+		$tabularEditorArguments = Get-VstsInput -Name TabularEditorArguments
 
 		$individual = $false
-		if($individualString == "Individual"){
+		if($individualString -eq "Individual"){
 			$individual = $true
 		}
 
@@ -95,8 +96,8 @@ PROCESS {
 		}
 		elseif ($action -eq "Publish") {
 			Write-Debug "File patern             : $($filePattern)";
-			Write-Debug "Remove report           : $($RemoveReport)";
-
+			Write-Debug "Remove report           : $($SkipReport)";
+			
 			if($SkipReport){
 				Publish-PowerBIFileApi -WorkspaceName $workspaceName -Create $Create -FilePattern $filePattern -Overwrite $overwrite -SkipReport $true
 			}else{
@@ -232,7 +233,7 @@ PROCESS {
 			Write-Debug "Dataset Name				  : $($dataset)"
 			Write-Debug "Report Name				  : $($ReportName)"
 
-			if ($CrossWorkspaceRebinding == $false) {
+			if (!$CrossWorkspaceRebinding) {
 				Redo-PowerBIReport -WorkspaceName $workspaceName -DatasetName $dataset -ReportName $ReportName
 			} else {
 				Redo-PowerBIReportCrossWorkspace -DatasetWorkspaceName $workspaceName -ReportWorkspaceName $ReportWorkspaceName -DatasetName $dataset -ReportName $ReportName
@@ -252,6 +253,10 @@ PROCESS {
 			Write-Host "Trying to update the dataset refresh schedule"
 			Set-RefreshSchedule -WorkspaceName $workspaceName -DatasetName $dataset -ScheduleJSON $RefreshScheduleInput -Individual $individual
 		}
+		elseif($action -eq "DeployTabularModel"){
+			Write-Debug "Tabular Editor Args          : $($tabularEditorArguments)"
+			Publish-TabularEditor -WorkspaceName $workspaceName -FilePattern $filePattern -TabularEditorArguments $tabularEditorArguments
+		}
 	}
 	finally {
 		Write-Output "Done processing Power BI Actions"
@@ -261,5 +266,3 @@ END {
 	Write-Output "Done running Power BI Actions extension."
 	Trace-VstsLeavingInvocation $MyInvocation
 }
-
-
